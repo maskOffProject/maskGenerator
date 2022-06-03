@@ -1,6 +1,9 @@
 import os
 import cv2
 from PIL import Image
+import random
+
+BUFFER_PERCENTAGE = 0.05
 
 
 def find_faces(image):
@@ -26,30 +29,43 @@ def find_eye_line(face):
 
 
 def main():
-    images_path = 'C:/mask/without_mask/'
-    images = os.listdir(images_path)[:10]
+    images_path = '../pair_face/without_mask/'
+    images = os.listdir(images_path)
     for image_name in images:
         image = cv2.imread(images_path + image_name)
+        height, width, depth = image.shape
+        img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         faces = find_faces(image)
 
-        mask_path = 'C:/dev/mask-off/generateMask/assets/black-mask.png'
+        if random.choice([0, 1]) == 0:
+            mask_path = 'assets/black-mask.png'
+        else:
+            mask_path = 'assets/aligned-blue-mask.png'
         mask = Image.open(mask_path).convert('RGBA')
 
         for (x, y, w, h) in faces:
             cv2.rectangle(image, (x, y), (x + w, y + h), (0, 235, 0), 2)
             (startX, startY, endX, endY) = (x, y, x + w, y + h)
+            startX = int(max(startX - width * BUFFER_PERCENTAGE, 0))
+            startY = int(max(startY - height * BUFFER_PERCENTAGE, 0))
+            endX = int(min(endX + width * BUFFER_PERCENTAGE, width))
+            endY = int(min(endY + height * BUFFER_PERCENTAGE, height))
             face = image[startY:endY, startX:endX]
 
             eye_line = find_eye_line(face)
-            background = Image.fromarray(face)
-            b, g, r = background.split()
-            background = Image.merge('RGB', (r, g, b))
+            if eye_line != -1:
+                background = Image.fromarray(face)
+                b, g, r = background.split()
+                background = Image.merge('RGB', (r, g, b))
 
-            new_mask_size = (background.size[0], background.size[1] - eye_line)
-            resized_mask = mask.copy().resize(new_mask_size)
+                new_mask_size = (background.size[0], background.size[1] - eye_line)
+                resized_mask = mask.copy().resize(new_mask_size)
 
-            background.paste(resized_mask, box=(0, eye_line), mask=resized_mask)
-            background.save('C:/mask/with_black_mask/' + image_name)
+                background.paste(resized_mask, box=(0, eye_line), mask=resized_mask)
+
+                fullbackground = Image.fromarray(img)
+                fullbackground.paste(background, (startX, startY))
+                fullbackground.save('../pair_face/with_different_masks/' + image_name)
 
 
 if __name__ == '__main__':
