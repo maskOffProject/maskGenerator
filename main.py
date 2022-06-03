@@ -23,13 +23,14 @@ def find_faces(image):
 def find_eye_line(face):
     eye_cascade = cv2.CascadeClassifier('C:/dev/mask-off/generateMask/assets/haarcascade_eye.xml')
     eyes = eye_cascade.detectMultiScale(face, scaleFactor=1.2, minNeighbors=4)
+    if len(eyes) == 0:
+        return -1
     eye_line = max(map(lambda eye: int(eye[1] + eye[-1] / 2), eyes[:1]))
-
     return eye_line
 
 
 def main():
-    images_path = '../pair_face/without_mask/'
+    images_path = 'C:/mask/without_mask/'
     images = os.listdir(images_path)
     for image_name in images:
         image = cv2.imread(images_path + image_name)
@@ -38,9 +39,9 @@ def main():
         faces = find_faces(image)
 
         if random.choice([0, 1]) == 0:
-            mask_path = 'assets/black-mask.png'
+            mask_path = './assets/black-mask.png'
         else:
-            mask_path = 'assets/aligned-blue-mask.png'
+            mask_path = './assets/aligned-blue-mask.png'
         mask = Image.open(mask_path).convert('RGBA')
 
         for (x, y, w, h) in faces:
@@ -65,7 +66,7 @@ def main():
 
                 fullbackground = Image.fromarray(img)
                 fullbackground.paste(background, (startX, startY))
-                fullbackground.save('../pair_face/with_different_masks/' + image_name)
+                fullbackground.save('C:/mask/with_different_mask/' + image_name)
 
 
 if __name__ == '__main__':
